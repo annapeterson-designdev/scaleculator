@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scaleculator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #faf9f6;
+      --surface: #ffffff;
+      --border: #e8e4df;
+      --accent: #C8201E;
+      --accent-light: #FDE8E8;
+      --text: #2c2420;
+      --muted: #8a7d76;
+      --success: #4a7c59;
+      --radius: 10px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+
+    #tagline {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    header span { font-size: 1.5rem; }
+
+    .layout {
+      display: flex;
+      flex: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      gap: 24px;
+      padding: 24px;
+    }
+
+    .main { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+
+    textarea { resize: vertical; min-height: 60px; }
+
+    /* Scale buttons */
+    .scale-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .scale-btn {
+      flex: 1;
+      padding: 10px 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .scale-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .scale-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .scale-btn-inv {
+      color: var(--muted);
+      border-style: dashed;
+    }
+
+    .scale-btn-serving {
+      border-style: dashed;
+      color: var(--muted);
+    }
+    .scale-btn-serving:not(:disabled):hover { color: var(--accent); border-style: dashed; }
+    .scale-btn-serving:disabled { opacity: 0.35; cursor: not-allowed; }
+    .scale-btn-serving.active { border-style: solid; }
+
+    /* Ingredients */
+    .ingredients-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .ingredient-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      transition: border-color 0.15s;
+    }
+
+    .ingredient-row:hover { border-color: var(--accent); }
+
+    .ingredient-row input[type="number"] {
+      width: 70px;
+      flex: none;
+    }
+
+    .ingredient-row select {
+      width: 100px;
+      flex: none;
+    }
+
+    .ingredient-row input[type="text"] { flex: 1; }
+
+    .ingredient-row .scaled-preview {
+      font-size: 0.8rem;
+      color: var(--success);
+      font-weight: 600;
+      white-space: nowrap;
+      min-width: 90px;
+      text-align: right;
+    }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 1.1rem;
+      padding: 2px 4px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .remove-btn:hover { color: #c04a3a; background: #fee; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #A81816; }
+
+    .btn-secondary {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn-ghost {
+      background: none;
+      color: var(--muted);
+      padding: 6px 10px;
+      font-size: 0.82rem;
+    }
+    .btn-ghost:hover { color: var(--accent); }
+
+    .btn-sm { padding: 6px 12px; font-size: 0.82rem; }
+
+    /* Saved recipes */
+    .saved-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .saved-item {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--bg);
+    }
+
+    .saved-item:hover { border-color: var(--accent); background: var(--accent-light); }
+    .saved-item.active { border-color: var(--accent); background: var(--accent-light); }
+
+    .saved-item-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 2px;
+    }
+
+    .saved-item-meta { font-size: 0.75rem; color: var(--muted); }
+
+    .saved-item-actions { display: flex; gap: 6px; margin-top: 6px; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 20px 0;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--text);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.2s;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* URL import */
+    .url-row {
+      display: flex;
+      gap: 8px;
+    }
+    .url-row input { flex: 1; padding: 12px 16px; }
+    .url-row button { flex-shrink: 0; }
+
+    .import-status {
+      margin-top: 8px;
+      font-size: 0.82rem;
+      min-height: 18px;
+    }
+    .import-status.error { color: #c04a3a; }
+    .import-status.success { color: var(--success); }
+
+    #servingsInfo {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      min-height: 16px;
+    }
+    #servingsInfo strong { color: var(--text); }
+
+    @media (max-width: 720px) {
+      .layout { flex-direction: column; padding: 16px; }
+      .sidebar { width: 100%; }
+      .scale-btns { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span>🧮</span>
+  <div>
+    <h1>Scaleculator</h1>
+    <p id="tagline">Grow and shrink any recipe, any units</p>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="main">
+
+    <div class="card">
+      <div class="card-title">Import from URL</div>
+      <div class="url-row">
+        <input type="url" id="recipeUrl" placeholder="Paste a recipe link…" onkeydown="if(event.key==='Enter') importFromUrl()" />
+        <button class="btn btn-primary" onclick="importFromUrl()" id="importBtn">Import</button>
+      </div>
+      <div class="import-status" id="importStatus"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Recipe</div>
+      <input type="text" id="recipeName" placeholder="Recipe name…" oninput="onRecipeChange()" />
+      <div style="margin-top: 10px;">
+        <label>Notes</label>
+        <textarea id="recipeNotes" placeholder="Instructions, tips, source…" oninput="onRecipeChange()"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Scale</div>
+      <div class="scale-btns">
+        <button class="scale-btn" data-factor="0.25" onclick="setScale(0.25)">¼x</button>
+        <button class="scale-btn" data-factor="0.5"  onclick="setScale(0.5)">½x</button>
+        <button class="scale-btn active" data-factor="1" onclick="setScale(1)">1x</button>
+        <button class="scale-btn" data-factor="2"    onclick="setScale(2)">2x</button>
+        <button class="scale-btn" data-factor="3"    onclick="setScale(3)">3x</button>
+        <button class="scale-btn" data-factor="4"    onclick="setScale(4)">4x</button>
+        <button class="scale-btn scale-btn-inv"      onclick="invertScale()" title="Invert current scale">1/x</button>
+        <button class="scale-btn scale-btn-serving" id="singleServingBtn" onclick="setSingleServing()" title="Scale to a single serving" disabled>1 serving</button>
+      </div>
+      <div id="servingsInfo"></div>
+    </div>
+
+    <div class="card">
+      <div class="ingredients-header">
+        <div class="card-title" style="margin-bottom:0">Ingredients</div>
+        <button class="btn btn-secondary btn-sm" onclick="addIngredient()">+ Add</button>
+      </div>
+      <div id="ingredientsList"></div>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn btn-primary" onclick="saveRecipe()">💾 Save Recipe</button>
+      <button class="btn btn-secondary" onclick="newRecipe()">+ New Recipe</button>
+      <button class="btn btn-ghost" onclick="copyScaled()">📋 Copy scaled list</button>
+    </div>
+
+  </div>
+
+  <div class="sidebar">
+    <div class="card">
+      <div class="card-title">Saved Recipes</div>
+      <div id="savedList" class="saved-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const VOLUME_TO_ML = { tsp:4.929, tbsp:14.787, 'fl oz':29.574, cup:236.588, pint:473.176, quart:946.353, gallon:3785.41, ml:1, L:1000 };
+const WEIGHT_TO_G  = { oz:28.3495, lb:453.592, g:1, kg:1000 };
+const VOLUME_UNITS = Object.keys(VOLUME_TO_ML);
+const WEIGHT_UNITS = Object.keys(WEIGHT_TO_G);
+const COUNT_UNITS  = ['piece','pinch','dash','clove','slice','can','pkg','bunch','handful','to taste',''];
+
+function unitType(u) {
+  if (VOLUME_UNITS.includes(u)) return 'volume';
+  if (WEIGHT_UNITS.includes(u)) return 'weight';
+  return 'count';
+}
+
+function normalize(amount, unit) {
+  const type = unitType(unit);
+  if (type === 'volume') {
+    const ml = amount * VOLUME_TO_ML[unit];
+    if (ml >= VOLUME_TO_ML.gallon * 0.9) return { amount: ml / VOLUME_TO_ML.gallon, unit: 'gallon' };
+    if (ml >= VOLUME_TO_ML.quart  * 0.9) return { amount: ml / VOLUME_TO_ML.quart,  unit: 'quart'  };
+    if (ml >= VOLUME_TO_ML.cup    * 0.9) return { amount: ml / VOLUME_TO_ML.cup,    unit: 'cup'    };
+    if (ml >= VOLUME_TO_ML.tbsp   * 0.9) return { amount: ml / VOLUME_TO_ML.tbsp,   unit: 'tbsp'   };
+    if (ml >= VOLUME_TO_ML.tsp    * 0.5) return { amount: ml / VOLUME_TO_ML.tsp,    unit: 'tsp'    };
+    return { amount: ml, unit: 'ml' };
+  }
+  if (type === 'weight') {
+    const g = amount * WEIGHT_TO_G[unit];
+    if (g >= WEIGHT_TO_G.kg * 0.9) return { amount: g / WEIGHT_TO_G.kg, unit: 'kg' };
+    if (g >= WEIGHT_TO_G.lb * 0.5) return { amount: g / WEIGHT_TO_G.lb, unit: 'lb' };
+    if (g >= WEIGHT_TO_G.oz * 0.5) return { amount: g / WEIGHT_TO_G.oz, unit: 'oz' };
+    return { amount: g, unit: 'g' };
+  }
+  return { amount, unit };
+}
+
+function scaleQty(amount, unit, factor) {
+  if (unitType(unit) === 'count') return { amount: amount * factor, unit };
+  return normalize(amount * factor, unit);
+}
+
+function fmtNum(n) {
+  if (!n || n === 0) return '0';
+  const fracs = [[1/8,'⅛'],[1/4,'¼'],[1/3,'⅓'],[1/2,'½'],[2/3,'⅔'],[3/4,'¾']];
+  const whole = Math.floor(n), rem = n - whole;
+  for (const [val, sym] of fracs) {
+    if (Math.abs(rem - val) < 0.04) return whole > 0 ? `${whole} ${sym}` : sym;
+  }
+  if (n < 10) return parseFloat(n.toFixed(2)).toString();
+  return parseFloat(n.toFixed(1)).toString();
+}
+
+let ingredients = [];
+let scaleFactor = 1;
+let baseServings = null;
+let currentId = null;
+let dirty = false;
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function loadSaved() {
+  try { return JSON.parse(localStorage.getItem('scaleculator_recipes') || '[]'); }
+  catch { return []; }
+}
+function persistSaved(r) { localStorage.setItem('scaleculator_recipes', JSON.stringify(r)); }
+
+function setScale(factor) {
+  scaleFactor = factor;
+  document.querySelectorAll('.scale-btn').forEach(btn => {
+    btn.classList.toggle('active', parseFloat(btn.dataset.factor) === factor);
+  });
+  renderScaledPreviews();
+}
+
+function invertScale() {
+  setScale(scaleFactor !== 0 ? parseFloat((1 / scaleFactor).toFixed(4)) : 1);
+}
+
+function setSingleServing() {
+  if (!baseServings) return;
+  setScale(parseFloat((1 / baseServings).toFixed(6)));
+}
+
+function updateSingleServingBtn() {
+  const btn = document.getElementById('singleServingBtn');
+  btn.disabled = !baseServings;
+  btn.title = baseServings ? `Scale to 1 serving (÷${baseServings})` : 'Import a recipe to enable';
+}
+
+function addIngredient(qty='', unit='cup', name='') {
+  ingredients.push({ id: genId(), qty, unit, name });
+  renderIngredients();
+  dirty = true;
+}
+
+function removeIngredient(id) {
+  ingredients = ingredients.filter(i => i.id !== id);
+  renderIngredients();
+  dirty = true;
+}
+
+function updateIngredient(id, field, value) {
+  const ing = ingredients.find(i => i.id === id);
+  if (ing) { ing[field] = value; dirty = true; }
+  renderScaledPreviews();
+}
+
+function unitOptgroup(selected) {
+  const opts = (units) => units.map(u =>
+    `<option value="${u}" ${u===selected?'selected':''}>${u||'—'}</option>`
+  ).join('');
+  return `<optgroup label="Volume">${opts(VOLUME_UNITS)}</optgroup>
+          <optgroup label="Weight">${opts(WEIGHT_UNITS)}</optgroup>
+          <optgroup label="Other">${opts(COUNT_UNITS)}</optgroup>`;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderIngredients() {
+  const list = document.getElementById('ingredientsList');
+  if (ingredients.length === 0) {
+    list.innerHTML = `<div class="empty-state">No ingredients yet — click + Add</div>`;
+    return;
+  }
+  list.innerHTML = ingredients.map(ing => `
+    <div class="ingredient-row" id="row-${ing.id}">
+      <input type="number" placeholder="Qty" min="0" step="any"
+        value="${escHtml(ing.qty)}"
+        oninput="updateIngredient('${ing.id}','qty',this.value)" />
+      <select onchange="updateIngredient('${ing.id}','unit',this.value)">
+        ${unitOptgroup(ing.unit)}
+      </select>
+      <input type="text" placeholder="Ingredient name…"
+        value="${escHtml(ing.name)}"
+        oninput="updateIngredient('${ing.id}','name',this.value)" />
+      <span class="scaled-preview" id="preview-${ing.id}"></span>
+      <button class="remove-btn" onclick="removeIngredient('${ing.id}')">×</button>
+    </div>
+  `).join('');
+  renderScaledPreviews();
+}
+
+function renderScaledPreviews() {
+  for (const ing of ingredients) {
+    const el = document.getElementById(`preview-${ing.id}`);
+    if (!el) continue;
+    const qty = parseFloat(ing.qty);
+    if (!ing.qty || isNaN(qty) || scaleFactor === 1) { el.textContent = ''; continue; }
+    const { amount, unit } = scaleQty(qty, ing.unit, scaleFactor);
+    el.textContent = `→ ${fmtNum(amount)} ${unit}`;
+  }
+}
+
+function saveRecipe() {
+  const recipe = {
+    id: currentId || (currentId = genId()),
+    name: document.getElementById('recipeName').value.trim() || 'Untitled Recipe',
+    notes: document.getElementById('recipeNotes').value,
+    ingredients: ingredients.map(i => ({...i})),
+    savedAt: new Date().toISOString(),
+  };
+  const saved = loadSaved();
+  const idx = saved.findIndex(r => r.id === currentId);
+  if (idx >= 0) saved[idx] = recipe; else saved.unshift(recipe);
+  persistSaved(saved);
+  dirty = false;
+  renderSavedList();
+  toast('Recipe saved!');
+}
+
+function loadRecipe(id) {
+  const recipe = loadSaved().find(r => r.id === id);
+  if (!recipe) return;
+  currentId = recipe.id;
+  document.getElementById('recipeName').value = recipe.name;
+  document.getElementById('recipeNotes').value = recipe.notes || '';
+  ingredients = recipe.ingredients.map(i => ({...i}));
+  dirty = false;
+  setScale(1);
+  renderIngredients();
+  renderSavedList();
+}
+
+function deleteRecipe(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this recipe?')) return;
+  const saved = loadSaved().filter(r => r.id !== id);
+  persistSaved(saved);
+  if (currentId === id) newRecipe();
+  renderSavedList();
+  toast('Recipe deleted.');
+}
+
+function duplicateRecipe(id, e) {
+  e.stopPropagation();
+  const orig = loadSaved().find(r => r.id === id);
+  if (!orig) return;
+  const copy = { ...orig, id: genId(), name: orig.name + ' (copy)', savedAt: new Date().toISOString() };
+  const saved = loadSaved();
+  saved.unshift(copy);
+  persistSaved(saved);
+  loadRecipe(copy.id);
+  toast('Recipe duplicated!');
+}
+
+function newRecipe() {
+  currentId = null;
+  document.getElementById('recipeName').value = '';
+  document.getElementById('recipeNotes').value = '';
+  document.getElementById('servingsInfo').innerHTML = '';
+  setImportStatus('');
+  baseServings = null;
+  updateSingleServingBtn();
+  ingredients = [
+    { id: genId(), qty: '', unit: 'cup', name: '' },
+    { id: genId(), qty: '', unit: 'cup', name: '' },
+  ];
+  dirty = false;
+  setScale(1);
+  renderIngredients();
+  renderSavedList();
+}
+
+function onRecipeChange() { dirty = true; }
+
+// ─── URL import ───────────────────────────────────────────────────────────────
+function setImportStatus(msg, type = '') {
+  const el = document.getElementById('importStatus');
+  el.textContent = msg;
+  el.className = 'import-status' + (type ? ' ' + type : '');
+}
+
+async function importFromUrl() {
+  const url = document.getElementById('recipeUrl').value.trim();
+  if (!url) return;
+  const btn = document.getElementById('importBtn');
+  btn.textContent = 'Loading…';
+  btn.disabled = true;
+  setImportStatus('Fetching recipe…');
+
+  try {
+    const proxies = [
+      async (u) => {
+        const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`);
+        if (!r.ok) throw new Error();
+        const d = await r.json();
+        if (!d.contents) throw new Error();
+        return d.contents;
+      },
+      async (u) => {
+        const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(u)}`);
+        if (!r.ok) throw new Error();
+        return r.text();
+      },
+      async (u) => {
+        const r = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`);
+        if (!r.ok) throw new Error();
+        return r.text();
+      },
+    ];
+
+    let html = null;
+    for (const proxy of proxies) {
+      try { html = await proxy(url); break; } catch {}
+    }
+    if (!html) throw new Error('Could not reach the recipe page — the site may block external requests');
+
+    // Parse JSON-LD from fetched HTML string
+    const ldMatches = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+    let recipeData = null;
+    for (const m of ldMatches) {
+      try {
+        const d = JSON.parse(m[1]);
+        const items = Array.isArray(d) ? d : [d['@graph'] ? d['@graph'] : d].flat();
+        recipeData = items.find(i => (i['@type'] || '').toString().toLowerCase().includes('recipe'));
+        if (recipeData) break;
+      } catch {}
+    }
+
+    if (!recipeData) throw new Error('No recipe data found on that page');
+
+    const name = recipeData.name || '';
+    const rawIngredients = recipeData.recipeIngredient || [];
+    if (rawIngredients.length === 0) throw new Error('Recipe found but has no ingredients listed');
+
+    // Parse servings
+    const yieldRaw = recipeData.recipeYield;
+    const yieldStr = Array.isArray(yieldRaw) ? yieldRaw[0] : (yieldRaw || '');
+    const servings = parseFloat(String(yieldStr)) || null;
+    const servingsLabel = yieldStr ? String(yieldStr).replace(/^\d+\s*/, '').trim() || 'servings' : 'servings';
+
+    ingredients = rawIngredients.map(parseIngredientString);
+    currentId = null;
+
+    if (name) document.getElementById('recipeName').value = name;
+    document.getElementById('recipeNotes').value = `Source: ${url}`;
+
+    baseServings = servings;
+    updateSingleServingBtn();
+
+    const infoEl = document.getElementById('servingsInfo');
+    infoEl.innerHTML = servings
+      ? `Base recipe: <strong>${servings} ${servingsLabel}</strong> — 1x scale matches the original`
+      : '';
+
+    setScale(1);
+    renderIngredients();
+    setImportStatus(`Imported ${ingredients.length} ingredients${servings ? ` · ${servings} ${servingsLabel}` : ''}`, 'success');
+    document.getElementById('recipeUrl').value = '';
+    dirty = true;
+  } catch (err) {
+    setImportStatus(err.message, 'error');
+  } finally {
+    btn.textContent = 'Import';
+    btn.disabled = false;
+  }
+}
+
+function parseIngredientString(str) {
+  str = str.trim()
+    .replace(/½/g,'1/2').replace(/¼/g,'1/4').replace(/¾/g,'3/4')
+    .replace(/⅓/g,'1/3').replace(/⅔/g,'2/3').replace(/⅛/g,'1/8');
+
+  const allUnits = [...VOLUME_UNITS, ...WEIGHT_UNITS, ...COUNT_UNITS.filter(Boolean)];
+  const unitPattern = allUnits.map(u => u.replace(/\s/g,'\\s')).join('|');
+  const re = new RegExp(`^([\\d\\s\\/\\.]+)?\\s*(${unitPattern}s?)?\\.?\\s*(.+)?$`, 'i');
+  const m = str.match(re);
+  if (!m) return { id: genId(), qty: '', unit: '', name: str };
+
+  let qty = '';
+  if (m[1]) {
+    const raw = m[1].trim();
+    if (raw.includes('/')) {
+      let val = 0;
+      for (const p of raw.split(/\s+/)) {
+        if (p.includes('/')) { const [a,b] = p.split('/'); val += parseFloat(a)/parseFloat(b); }
+        else val += parseFloat(p) || 0;
+      }
+      qty = isNaN(val) ? '' : String(val);
+    } else {
+      qty = isNaN(parseFloat(raw)) ? '' : String(parseFloat(raw));
+    }
+  }
+
+  let unit = (m[2] || '').toLowerCase().replace(/s$/, '');
+  if (![...VOLUME_UNITS, ...WEIGHT_UNITS, ...COUNT_UNITS].includes(unit)) unit = '';
+  const name = (m[3] || str).trim();
+  return { id: genId(), qty, unit: unit || '', name };
+}
+
+function renderSavedList() {
+  const recipes = loadSaved();
+  const el = document.getElementById('savedList');
+  if (recipes.length === 0) {
+    el.innerHTML = `<div class="empty-state">No saved recipes yet.</div>`;
+    return;
+  }
+  el.innerHTML = recipes.map(r => `
+    <div class="saved-item ${r.id === currentId ? 'active' : ''}" onclick="loadRecipe('${r.id}')">
+      <div class="saved-item-name">${escHtml(r.name)}</div>
+      <div class="saved-item-meta">${r.ingredients.length} ingredient${r.ingredients.length !== 1 ? 's' : ''}</div>
+      <div class="saved-item-actions">
+        <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:0.75rem" onclick="duplicateRecipe('${r.id}',event)">Copy</button>
+        <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:0.75rem;color:#c04a3a" onclick="deleteRecipe('${r.id}',event)">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function copyScaled() {
+  const name = document.getElementById('recipeName').value.trim() || 'Recipe';
+  const scaleLabel = scaleFactor === 1 ? '' : ` (×${fmtNum(scaleFactor)})`;
+  let lines = [`${name}${scaleLabel}\n`];
+  for (const ing of ingredients) {
+    if (!ing.name && !ing.qty) continue;
+    const qty = parseFloat(ing.qty);
+    if (!isNaN(qty) && qty > 0) {
+      const { amount, unit } = scaleQty(qty, ing.unit, scaleFactor);
+      lines.push(`• ${fmtNum(amount)} ${unit} ${ing.name}`.trim());
+    } else {
+      lines.push(`• ${ing.name}`);
+    }
+  }
+  navigator.clipboard.writeText(lines.join('\n')).then(() => toast('Copied to clipboard!'));
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+newRecipe();
+renderSavedList();
+</script>
+</body>
+</html>
